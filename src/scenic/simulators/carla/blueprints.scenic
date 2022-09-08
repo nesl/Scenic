@@ -232,3 +232,12 @@ walkerModels = [
       'walker.pedestrian.0014'
 ]
 
+## Sensor blueprints
+
+rgbModels = [
+      'sensor.camera.rgb'
+]
+
+depthModels = [
+      'sensor.camera.depth'
+]

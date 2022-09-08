@@ -45,6 +45,7 @@ from scenic.domains.driving.model import *
 import scenic.simulators.carla.blueprints as blueprints
 from scenic.simulators.carla.behaviors import *
 from scenic.simulators.utils.colors import Color
+import pdb
 
 try:
     from scenic.simulators.carla.simulator import CarlaSimulator    # for use in scenarios
@@ -133,10 +134,38 @@ class CarlaActor(DrivingObject):
 
     def setVelocity(self, vel):
         cvel = _utils.scenicToCarlaVector3D(*vel)
+        
         if hasattr(self.carlaActor, 'set_target_velocity'):
             self.carlaActor.set_target_velocity(cvel)
         else:
             self.carlaActor.set_velocity(cvel)
+            
+    def destroy(self,simulation):
+        #pdb.set_trace()
+        
+        for s_idx,s in enumerate(simulation.objects):
+            if s.carlaActor == self.carlaActor:
+                del simulation.objects[s_idx]
+                
+        self.carlaActor.destroy()
+    
+    def get_transform(self):
+        if self.carlaActor:
+            return self.carlaActor.get_transform()
+        else:
+            return None
+        
+
+class Camera(CarlaActor):
+    physics: False
+    allowCollisions: True
+    cam_queue: None
+    
+class rgbCamera(Camera,CarlaActor):
+    blueprint: Uniform(*blueprints.rgbModels)
+    
+class depthCamera(Camera,CarlaActor):
+    blueprint: Uniform(*blueprints.depthModels)
 
 class Vehicle(Vehicle, CarlaActor, Steers):
     """Abstract class for steerable vehicles."""
@@ -209,7 +238,9 @@ class Pedestrian(Pedestrian, CarlaActor, Walks):
         self.control.direction = _utils.scenicToCarlaVector3D(*direction, zComp)
 
     def setWalkingSpeed(self, speed):
-        self.control.speed = speed
+        #self.control.speed = speed
+        self.carlaController.set_max_speed(speed)
+        
 
 
 class Prop(CarlaActor):
@@ -219,12 +250,14 @@ class Prop(CarlaActor):
         heading (float): Default value overridden to be uniformly random.
         physics (bool): Default value overridden to be false.
     """
-    regionContainedIn: road
-    position: Point on road
+    regionContainedIn: sidewalk
+    position: Point on sidewalk
     heading: Range(0, 360) deg
     width: 0.5
     length: 0.5
-    physics: False
+    physics: True
+    bounding_box: None
+    id: 0
 
 class Trash(Prop):
     blueprint: Uniform(*blueprints.trashModels)
@@ -403,3 +436,5 @@ def setClosestTrafficLightStatus(vehicle, color, distance=100):
     traffic_light = _getClosestTrafficLight(vehicle, distance)
     if traffic_light is not None:
         traffic_light.set_state(color)
+        
+

@@ -6,6 +6,7 @@ import scenic.domains.driving.model as _model
 try:
     from scenic.simulators.carla.actions import *
 except ModuleNotFoundError:
+    print("error module not found")
     pass    # ignore; error will be caught later if user attempts to run a simulation
 
 behavior AutopilotBehavior():

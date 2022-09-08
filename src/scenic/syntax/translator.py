@@ -75,6 +75,8 @@ import scenic.core.dynamics as dynamics
 import scenic.core.pruning as pruning
 import scenic.syntax.veneer as veneer
 
+import pdb
+
 ### THE TOP LEVEL: compiling a Scenic program
 
 def scenarioFromString(string, params={}, model=None, scenario=None,
@@ -129,6 +131,7 @@ def scenarioFromStream(stream, params={}, model=None, scenario=None,
 	"""Compile a stream of Scenic code into a `Scenario`."""
 	# Compile the code as if it were a top-level module
 	oldModules = list(sys.modules.keys())
+
 	try:
 		with topLevelNamespace(path) as namespace:
 			compileStream(stream, namespace, params=params, model=model, filename=filename)
@@ -247,6 +250,7 @@ def compileStream(stream, namespace, params={}, model=None, filename='<stream>')
 	blocks = partitionByImports(tokens)
 	veneer.activate(params, model, filename, namespace)
 	newSourceBlocks = []
+
 	try:
 		# Execute preamble
 		exec(compile(preamble, '<veneer>', 'exec'), namespace)

@@ -2,11 +2,20 @@
 
 import math as _math
 
-import carla as _carla
+
+import sys
+try:
+	sys.path.append('CARLA_0.9.10/PythonAPI/carla/dist/carla-0.9.10-py3.7-linux-x86_64.egg')
+	sys.path.append('CARLA_0.9.10/PythonAPI/carla/')
+	import carla as _carla
+except ImportError as e:
+	raise ModuleNotFoundError('CARLA scenarios require the "carla" Python package') from e
 
 from scenic.domains.driving.actions import *
 import scenic.simulators.carla.utils.utils as _utils
 import scenic.simulators.carla.model as _carlaModel
+
+import carla_code.bbox_annotation.carla_vehicle_annotator as cva
 
 ################################################
 # Actions available to all carla.Actor objects #
@@ -153,6 +162,13 @@ class SetWalkAction(PedestrianAction):
 		else:
 			controller.stop()
 
+class SetWalkDestination(PedestrianAction):
+	def __init__(self,destination):
+		self.destination = _utils.scenicToCarlaLocation(destination,z=0)
+	def applyTo(self, obj, sim):
+		controller = obj.carlaController
+		controller.go_to_location(self.destination)
+		
 
 class TrackWaypointsAction(Action):
 	def __init__(self, waypoints, cruising_speed = 10):
@@ -230,3 +246,89 @@ class TrackWaypointsAction(Action):
 		elif u_thrust < 0.1:
 			ctrl.braking = -u_thrust
 		carlaObj.apply_control(ctrl)
+		
+class GetBoundingBox(Action):
+	"""Get bounding boxes"""
+	def __init__(self, depth, actors):
+		self.depth = depth
+		self.actors = actors
+	def applyTo(self, obj, sim):
+		if self.depth.cam_queue and obj.cam_queue:  # We only save information if we have captured data
+
+			#desc = camqueue[2]
+			# print(desc)
+
+			# Get images
+			depth_image = self.depth.cam_queue[-1]
+			rgb_image = obj.cam_queue[-1] #.get()
+			# Make sure the image queues stay under the size
+			self.depth.cam_queue.clear()
+			obj.cam_queue.clear()
+
+			# Save RGB image with bounding boxes
+			depth_meter = cva.extract_depth(depth_image)
+			#filtered, removed = cva.auto_annotate(vehicle_actors, \
+			#    camera_actors[i][0], depth_meter)
+
+			actors_bb = [x.carlaActor if isinstance(x.carlaActor,_carla.Walker) or isinstance(x.carlaActor,_carla.Vehicle) else x for x in self.actors]
+			
+			filtered, removed = cva.auto_annotate(actors_bb,obj.carlaActor, depth_meter, depth_margin=100)
+			#pdb.set_trace()
+			# Get the corresponding metadata for these vehicles
+			metadata = []
+
+			#print(filtered["vehicles"], object_actors)
+			for filtered_vehicle in filtered["vehicles"]:
+
+
+				vehicle_traffic_state = "N/A"
+
+				if(isinstance(filtered_vehicle,_carla.libcarla.Walker)):
+					#pdb.set_trace()
+					metadata_entry = [filtered_vehicle.id]
+				
+				else:
+					metadata_entry = [filtered_vehicle.id]
+
+	
+
+
+				'''
+				# Get current vehicle attributes
+				vehicle_loc = filtered_vehicle.get_transform().location
+				vehicle_rot = filtered_vehicle.get_transform().rotation
+				vehicle_acc = filtered_vehicle.get_acceleration()
+				vehicle_vel = filtered_vehicle.get_velocity()
+				vehicle_ang_vel = filtered_vehicle.get_angular_velocity()
+
+
+
+				current_vehicle_attributes = {}
+				current_vehicle_attributes["location"] = [vehicle_loc.x, \
+				    vehicle_loc.y, vehicle_loc.z]
+				current_vehicle_attributes["rotation"] = [vehicle_rot.pitch, \
+				    vehicle_rot.yaw, vehicle_rot.roll]
+				current_vehicle_attributes["acceleration"] = [vehicle_acc.x, \
+				    vehicle_acc.y, vehicle_acc.z]
+				current_vehicle_attributes["velocity"] = [vehicle_vel.x, \
+				    vehicle_vel.y, vehicle_vel.z]
+				current_vehicle_attributes["angular_velocity"] = [vehicle_ang_vel.x, \
+				    vehicle_ang_vel.y, vehicle_ang_vel.z]
+				current_vehicle_attributes["traffic_state"] = vehicle_traffic_state
+
+
+				metadata_entry.append(current_vehicle_attributes)
+				'''
+
+				metadata.append(metadata_entry)
+
+			# We only save the image under two conditions:
+			#   - There is actually a vehicle in the image
+			#   - For a single time per simulation, we save the first image that has no vehicles
+			# if metadata: or not stored_empty_image:
+
+
+			cva.save_output(rgb_image, filtered['bbox'], filtered['class'], \
+			removed['bbox'], removed['class'], path="out/", \
+			save_patched=True, add_data=metadata, out_format='json')
+

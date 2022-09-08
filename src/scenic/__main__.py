@@ -7,6 +7,7 @@ import time
 import argparse
 import random
 
+
 if sys.version_info >= (3, 8):
     from importlib import metadata
 else:
@@ -115,6 +116,7 @@ if args.seed is not None and args.verbosity >= 1:
 if args.verbosity >= 1:
     print('Beginning scenario construction...')
 startTime = time.time()
+
 scenario = errors.callBeginningScenicTrace(
     lambda: translator.scenarioFromFile(args.scenicFile,
                                         params=params,

@@ -1,6 +1,8 @@
 """Simulator interface for CARLA."""
-
+import sys
 try:
+	sys.path.append('CARLA_0.9.10/PythonAPI/carla/dist/carla-0.9.10-py3.7-linux-x86_64.egg')
+	sys.path.append('CARLA_0.9.10/PythonAPI/carla/')
 	import carla
 except ImportError as e:
 	raise ModuleNotFoundError('CARLA scenarios require the "carla" Python package') from e
@@ -21,6 +23,7 @@ from scenic.syntax.veneer import verbosePrint
 from scenic.simulators.carla.blueprints import oldBlueprintNames
 import scenic.simulators.carla.utils.utils as utils
 import scenic.simulators.carla.utils.visuals as visuals
+import pdb
 
 
 class CarlaSimulator(DrivingSimulator):
@@ -81,7 +84,7 @@ class CarlaSimulation(DrivingSimulation):
 		self.map = self.world.get_map()
 		self.blueprintLib = self.world.get_blueprint_library()
 		self.tm = tm
-		
+
 		weather = scene.params.get("weather")
 		if weather is not None:
 			if isinstance(weather, str):
@@ -114,6 +117,7 @@ class CarlaSimulation(DrivingSimulation):
 				os.mkdir(self.record)
 			name = "{}/scenario{}.log".format(self.record, self.scenario_number)
 			self.client.start_recorder(name)
+
 
 		# Create Carla actors corresponding to Scenic objects
 		self.ego = None
@@ -152,6 +156,7 @@ class CarlaSimulation(DrivingSimulation):
 
 	def createObjectInSimulator(self, obj):
 		# Extract blueprint
+
 		try:
 			blueprint = self.blueprintLib.find(obj.blueprint)
 		except IndexError as e:
@@ -176,10 +181,25 @@ class CarlaSimulation(DrivingSimulation):
 		# set walker as not invincible
 		if blueprint.has_attribute('is_invincible'):
 			blueprint.set_attribute('is_invincible', 'False')
+			
+		if blueprint.id == 'sensor.camera.rgb':
+			blueprint.set_attribute("motion_blur_intensity", "0")
 
 		# Set up transform
 		loc = utils.scenicToCarlaLocation(obj.position, world=self.world, blueprint=obj.blueprint)
+		if obj.elevation:
+			loc.z = obj.elevation
+			
+		
 		rot = utils.scenicToCarlaRotation(obj.heading)
+		
+		if obj.pitch:
+			rot.pitch = obj.pitch
+		if obj.yaw:
+			rot.yaw = obj.yaw
+		if obj.roll:
+			rot.roll = obj.roll
+			
 		transform = carla.Transform(loc, rot)
 
 		# Color, cannot be set for Pedestrians
@@ -195,7 +215,7 @@ class CarlaSimulation(DrivingSimulation):
 			raise SimulationCreationError(f'Unable to spawn object {obj}')
 		obj.carlaActor = carlaActor
 
-		carlaActor.set_simulate_physics(obj.physics)
+		#carlaActor.set_simulate_physics(obj.physics)
 
 		if isinstance(carlaActor, carla.Vehicle):
 			# TODO should get dimensions at compile time, not simulation time
@@ -211,6 +231,20 @@ class CarlaSimulation(DrivingSimulation):
 				self.destroy()
 				raise SimulationCreationError(f'Unable to spawn carla controller for object {obj}')
 			obj.carlaController = controller
+		elif isinstance(carlaActor, carla.Sensor):
+			tick_sensor = 0.05
+			#pdb.set_trace()
+			carlaActor.sensor_tick = tick_sensor
+			# Keep track of a camera queue for both
+			cam_queue = [] # queue.Queue()
+			carlaActor.listen(cam_queue.append)
+			#carlaActor.listen(lambda image: image.save_to_disk('out/%06d.png' % image.frame))
+			obj.cam_queue = cam_queue
+			print("here camera")
+		elif "static.prop" in blueprint.id:
+			obj.bounding_box = carla.BoundingBox(carla.Transform().location,carla.Vector3D(0.8,0.8,0.8))
+			obj.id = carlaActor.id
+			
 		return carlaActor
 
 	def executeActions(self, allActions):

@@ -18,6 +18,7 @@ import math
 from scenic.core.vectors import Vector
 from scenic.core.simulators import Action
 import scenic.domains.driving.model as _model
+import pdb
 
 ## Actions available to all agents
 
@@ -202,4 +203,10 @@ class SetWalkingSpeedAction(WalkingAction):
 		self.speed = speed
 
 	def applyTo(self, obj, sim):
+
 		obj.setWalkingSpeed(self.speed)
+		
+
+
+
+

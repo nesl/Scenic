@@ -40,6 +40,7 @@ from scenic.domains.driving.behaviors import *
 from scenic.core.distributions import RejectionException
 from scenic.simulators.utils.colors import Color
 
+
 ## Load map and set up workspace
 
 if 'map' not in globalParameters:
@@ -102,6 +103,9 @@ class DrivingObject:
     """
 
     elevation[dynamic]: None
+    pitch: None
+    yaw: None
+    roll: None
 
     requireVisible: False
 
@@ -225,6 +229,7 @@ class DrivingObject:
 
         For example, one could write :samp:`self.distanceToClosest(Car)` in a behavior.
         """
+
         objects = simulation().objects
         minDist = float('inf')
         for obj in objects:
@@ -233,6 +238,7 @@ class DrivingObject:
             d = distance from self to obj
             if 0 < d < minDist:
                 minDist = d
+
         return minDist
 
     # Simulator interface implemented by subclasses
@@ -241,6 +247,7 @@ class DrivingObject:
         raise NotImplementedError
 
     def setVelocity(self, vel):
+
         raise NotImplementedError
 
 class Vehicle(DrivingObject):

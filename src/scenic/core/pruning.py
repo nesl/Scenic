@@ -8,6 +8,7 @@ import math
 import time
 import shapely.geometry
 import shapely.geos
+import pdb
 
 from scenic.core.distributions import (Samplable, MethodDistribution, OperatorDistribution,
                                        needsSampling, supportInterval, underlyingFunction)
@@ -97,6 +98,7 @@ def pruneContainment(scenario, verbosity):
     bound the radius of O, then we can first erode C by that distance.
     """
     for obj in scenario.objects:
+
         base = matchInRegion(obj.position)
         if base is None:                    # match objects positioned uniformly in a Region
             continue
