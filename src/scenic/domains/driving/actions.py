@@ -206,6 +206,15 @@ class SetWalkingSpeedAction(WalkingAction):
 
 		obj.setWalkingSpeed(self.speed)
 		
+class SetWalkingSpeedAction2(WalkingAction):
+	"""Set the walking speed."""
+	def __init__(self, speed):
+		self.speed = speed
+
+	def applyTo(self, obj, sim):
+
+		obj.setWalkingSpeed2(self.speed)
+		
 
 
 

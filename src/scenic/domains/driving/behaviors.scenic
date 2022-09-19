@@ -4,6 +4,7 @@ These behaviors are automatically imported when using the driving domain.
 """
 
 import math
+import pdb
 
 from scenic.domains.driving.actions import *
 import scenic.domains.driving.model as _model
@@ -79,7 +80,10 @@ behavior FollowLaneBehavior(target_speed = 10, laneToFollow=None, is_oppositeTra
     # instantiate longitudinal and lateral controllers
     _lon_controller, _lat_controller = simulation().getLaneFollowingControllers(self)
 
+    #pdb.set_trace()
     while True:
+        #print(current_lane.id)
+
 
         if self.speed is not None:
             current_speed = self.speed
@@ -91,14 +95,14 @@ behavior FollowLaneBehavior(target_speed = 10, laneToFollow=None, is_oppositeTra
             intersection_passed = False
             straight_manuevers = filter(lambda i: i.type == ManeuverType.STRAIGHT, current_lane.maneuvers)
 
-            if len(straight_manuevers) > 0:
-                select_maneuver = Uniform(*straight_manuevers)
+            #if len(straight_manuevers) > 0:
+            #    select_maneuver = Uniform(*straight_manuevers)
+            #else:
+            if len(current_lane.maneuvers) > 0:
+                select_maneuver = Uniform(*current_lane.maneuvers)
             else:
-                if len(current_lane.maneuvers) > 0:
-                    select_maneuver = Uniform(*current_lane.maneuvers)
-                else:
-                    take SetBrakeAction(1.0)
-                    break
+                take SetBrakeAction(1.0)
+                break
 
             # assumption: there always will be a maneuver
             if select_maneuver.connectingLane != None:

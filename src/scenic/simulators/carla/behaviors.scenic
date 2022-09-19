@@ -17,7 +17,8 @@ behavior WalkForwardBehavior(speed=0.5):
 	take SetWalkingDirectionAction(self.heading), SetWalkingSpeedAction(speed)
 
 behavior WalkBehavior(maxSpeed=1.4):
-	take SetWalkAction(True, maxSpeed)
+	if self.carlaController:
+		take SetWalkAction(True, maxSpeed)
 
 behavior CrossingBehavior(reference_actor, min_speed=1, threshold=10, final_speed=None):
     """

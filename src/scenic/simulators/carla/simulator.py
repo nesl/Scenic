@@ -121,9 +121,14 @@ class CarlaSimulation(DrivingSimulation):
 
 		# Create Carla actors corresponding to Scenic objects
 		self.ego = None
-		for obj in self.objects:
+		to_delete = []
+		for obj_idx,obj in enumerate(self.objects):
 			carlaActor = self.createObjectInSimulator(obj)
-
+			
+			if not carlaActor:
+				to_delete.append(obj_idx)
+				continue
+				
 			# Check if ego (from carla_scenic_taks.py)
 			if obj is self.objects[0]:
 				self.ego = obj
@@ -137,6 +142,9 @@ class CarlaSimulation(DrivingSimulation):
 					self.cameraManager.set_sensor(camIndex)
 					self.cameraManager.set_transform(self.camTransform)
 
+		
+		self.objects = [self.objects[ele] for ele in range(len(self.objects)) if ele not in to_delete]
+		
 		self.world.tick() ## allowing manualgearshift to take effect 	# TODO still need this?
 
 		for obj in self.objects:
@@ -211,8 +219,10 @@ class CarlaSimulation(DrivingSimulation):
 		# Create Carla actor
 		carlaActor = self.world.try_spawn_actor(blueprint, transform)
 		if carlaActor is None:
-			self.destroy()
-			raise SimulationCreationError(f'Unable to spawn object {obj}')
+			#self.destroy()
+			#raise SimulationCreationError(f'Unable to spawn object {obj}')
+			print(f'Unable to spawn object {obj}')
+			return None
 		obj.carlaActor = carlaActor
 
 		#carlaActor.set_simulate_physics(obj.physics)
@@ -221,7 +231,7 @@ class CarlaSimulation(DrivingSimulation):
 			# TODO should get dimensions at compile time, not simulation time
 			obj.width = carlaActor.bounding_box.extent.y * 2
 			obj.length = carlaActor.bounding_box.extent.x * 2
-			carlaActor.apply_control(carla.VehicleControl(manual_gear_shift=True, gear=1))
+			#carlaActor.apply_control(carla.VehicleControl(manual_gear_shift=True, gear=1))
 		elif isinstance(carlaActor, carla.Walker):
 			carlaActor.apply_control(carla.WalkerControl())
 			# spawn walker controller
@@ -240,7 +250,7 @@ class CarlaSimulation(DrivingSimulation):
 			carlaActor.listen(cam_queue.append)
 			#carlaActor.listen(lambda image: image.save_to_disk('out/%06d.png' % image.frame))
 			obj.cam_queue = cam_queue
-			print("here camera")
+			#print("here camera")
 		elif "static.prop" in blueprint.id:
 			obj.bounding_box = carla.BoundingBox(carla.Transform().location,carla.Vector3D(0.8,0.8,0.8))
 			obj.id = carlaActor.id

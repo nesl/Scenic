@@ -160,9 +160,11 @@ class Camera(CarlaActor):
     physics: False
     allowCollisions: True
     cam_queue: None
+    camera_id: 0
     
 class rgbCamera(Camera,CarlaActor):
     blueprint: Uniform(*blueprints.rgbModels)
+    depth: None
     
 class depthCamera(Camera,CarlaActor):
     blueprint: Uniform(*blueprints.depthModels)
@@ -240,6 +242,10 @@ class Pedestrian(Pedestrian, CarlaActor, Walks):
     def setWalkingSpeed(self, speed):
         #self.control.speed = speed
         self.carlaController.set_max_speed(speed)
+        
+    def setWalkingSpeed2(self, speed):
+        self.control.speed = speed
+        #self.carlaController.set_max_speed(speed)
         
 
 

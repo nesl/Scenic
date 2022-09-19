@@ -14,8 +14,10 @@ except ImportError as e:
 from scenic.domains.driving.actions import *
 import scenic.simulators.carla.utils.utils as _utils
 import scenic.simulators.carla.model as _carlaModel
-
+from agents.navigation.basic_agent import BasicAgent
+import pdb
 import carla_code.bbox_annotation.carla_vehicle_annotator as cva
+import numpy as np
 
 ################################################
 # Actions available to all carla.Actor objects #
@@ -175,6 +177,7 @@ class TrackWaypointsAction(Action):
 		self.waypoints = np.array(waypoints)
 		self.curr_index = 1
 		self.cruising_speed = cruising_speed
+		pdb.set_trace()
 
 	def canBeTakenBy(self, agent):
 		# return agent.lgsvlAgentType is lgsvl.AgentType.EGO
@@ -193,7 +196,7 @@ class TrackWaypointsAction(Action):
 		pos = transform.location
 		rot = transform.rotation
 		velocity = carlaObj.get_velocity()
-		th, x, y, v = rot.y/180.0*np.pi, pos.x, pos.z, (velocity.x**2 + velocity.z**2)**0.5
+		th, x, y, v = rot.pitch/180.0*np.pi, pos.x, pos.z, (velocity.x**2 + velocity.z**2)**0.5
 		#print('state:', th, x, y, v)
 		PREDICTIVE_LENGTH = 3
 		MIN_SPEED = 1
@@ -247,31 +250,63 @@ class TrackWaypointsAction(Action):
 			ctrl.braking = -u_thrust
 		carlaObj.apply_control(ctrl)
 		
+		
+class GetPathVehicle(Action):
+
+
+	def __init__(self,obj,actor,sim):
+		self.position = actor.carlaActor.get_transform().location
+		self.agent = BasicAgent(obj.carlaActor)
+		map = sim.map
+		
+		chosen_waypoint = map.get_waypoint(self.position,project_to_road=True, lane_type=_carla.LaneType.Driving)
+		current_waypoint = map.get_waypoint(obj.carlaActor.get_transform().location,project_to_road=True, lane_type=_carla.LaneType.Driving)
+		new_route_trace = self.agent._trace_route(current_waypoint, chosen_waypoint)
+		#pdb.set_trace()
+		print(new_route_trace)
+		self.agent._local_planner.set_global_plan(new_route_trace)
+		obj.carlaActor.apply_control(self.agent.run_step())
+		self.counter = 0
+		
+		
+	def applyTo(self,obj,sim):
+		
+		print("k22")
+		if not self.counter:	
+			
+			self.counter += 1
+			print("aqui")
+		else:
+			print("aqui2")
+			control = self.agent._local_planner.run_step()
+			obj.carlaActor.apply_control(control)
+
+		
 class GetBoundingBox(Action):
 	"""Get bounding boxes"""
-	def __init__(self, depth, actors):
-		self.depth = depth
+	def __init__(self, actors):
 		self.actors = actors
+		#print(len(actors))
 	def applyTo(self, obj, sim):
-		if self.depth.cam_queue and obj.cam_queue:  # We only save information if we have captured data
+		if obj.depth.cam_queue and obj.cam_queue:  # We only save information if we have captured data
 
 			#desc = camqueue[2]
 			# print(desc)
 
 			# Get images
-			depth_image = self.depth.cam_queue[-1]
+			depth_image = obj.depth.cam_queue[-1]
 			rgb_image = obj.cam_queue[-1] #.get()
 			# Make sure the image queues stay under the size
-			self.depth.cam_queue.clear()
+			obj.depth.cam_queue.clear()
 			obj.cam_queue.clear()
 
 			# Save RGB image with bounding boxes
 			depth_meter = cva.extract_depth(depth_image)
 			#filtered, removed = cva.auto_annotate(vehicle_actors, \
 			#    camera_actors[i][0], depth_meter)
-
-			actors_bb = [x.carlaActor if isinstance(x.carlaActor,_carla.Walker) or isinstance(x.carlaActor,_carla.Vehicle) else x for x in self.actors]
-			
+			#pdb.set_trace()
+			actors_bb = [x.carlaActor if isinstance(x.carlaActor,_carla.Walker) or isinstance(x.carlaActor,_carla.Vehicle) else x for x in self.actors if x.carlaActor is not None]
+			#pdb.set_trace()
 			filtered, removed = cva.auto_annotate(actors_bb,obj.carlaActor, depth_meter, depth_margin=100)
 			#pdb.set_trace()
 			# Get the corresponding metadata for these vehicles
@@ -283,12 +318,13 @@ class GetBoundingBox(Action):
 
 				vehicle_traffic_state = "N/A"
 
-				if(isinstance(filtered_vehicle,_carla.libcarla.Walker)):
+				if (isinstance(filtered_vehicle,_carla.libcarla.Walker)):
 					#pdb.set_trace()
-					metadata_entry = [filtered_vehicle.id]
-				
+					metadata_entry = ["pedestrian",filtered_vehicle.attributes,filtered_vehicle.type_id,filtered_vehicle.id]
+				elif (isinstance(filtered_vehicle,_carla.libcarla.Vehicle)):
+					metadata_entry = ["vehicle",filtered_vehicle.attributes,filtered_vehicle.type_id, filtered_vehicle.id]
 				else:
-					metadata_entry = [filtered_vehicle.id]
+					metadata_entry = ["object",filtered_vehicle.carlaActor.attributes,filtered_vehicle.carlaActor.type_id,filtered_vehicle.carlaActor.id]
 
 	
 
@@ -329,6 +365,6 @@ class GetBoundingBox(Action):
 
 
 			cva.save_output(rgb_image, filtered['bbox'], filtered['class'], \
-			removed['bbox'], removed['class'], path="out/", \
+			removed['bbox'], removed['class'], path="out/tc"+str(obj.camera_id), \
 			save_patched=True, add_data=metadata, out_format='json')
 
