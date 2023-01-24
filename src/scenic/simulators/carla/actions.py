@@ -284,8 +284,9 @@ class GetPathVehicle(Action):
 		
 class GetBoundingBox(Action):
 	"""Get bounding boxes"""
-	def __init__(self, actors):
+	def __init__(self, actors, path):
 		self.actors = actors
+		self.path = path
 		#print(len(actors))
 	def applyTo(self, obj, sim):
 		if obj.depth.cam_queue and obj.cam_queue:  # We only save information if we have captured data
@@ -365,6 +366,6 @@ class GetBoundingBox(Action):
 
 
 			cva.save_output(rgb_image, filtered['bbox'], filtered['class'], \
-			removed['bbox'], removed['class'], path="out/tc"+str(obj.camera_id), \
+			removed['bbox'], removed['class'], path=self.path+"tc"+str(obj.camera_id), \
 			save_patched=True, add_data=metadata, out_format='json')
 

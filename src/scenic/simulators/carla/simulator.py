@@ -127,9 +127,14 @@ class CarlaSimulation(DrivingSimulation):
 			
 			if not carlaActor:
 				to_delete.append(obj_idx)
+				if obj is self.objects[0]:
+					print(f'Unable to spawn object {obj}')
+					self.destroy()
+					raise SimulationCreationError(f'Unable to spawn ego')
 				continue
 				
 			# Check if ego (from carla_scenic_taks.py)
+		
 			if obj is self.objects[0]:
 				self.ego = obj
 
@@ -142,9 +147,10 @@ class CarlaSimulation(DrivingSimulation):
 					self.cameraManager.set_sensor(camIndex)
 					self.cameraManager.set_transform(self.camTransform)
 
-		
+		print("Before:",len(self.objects))
 		self.objects = [self.objects[ele] for ele in range(len(self.objects)) if ele not in to_delete]
-		
+		#self.objects = [self.objects[ele] for ele in range(len(self.objects)) if ele not in to_delete]
+		print("After:",len(self.objects))
 		self.world.tick() ## allowing manualgearshift to take effect 	# TODO still need this?
 
 		for obj in self.objects:
