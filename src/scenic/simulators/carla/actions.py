@@ -11,13 +11,17 @@ try:
 except ImportError as e:
 	raise ModuleNotFoundError('CARLA scenarios require the "carla" Python package') from e
 
+
+import bbox_annotation.carla_vehicle_annotator as cva
+from agents.navigation.basic_agent import BasicAgent
 from scenic.domains.driving.actions import *
 import scenic.simulators.carla.utils.utils as _utils
 import scenic.simulators.carla.model as _carlaModel
-from agents.navigation.basic_agent import BasicAgent
 import pdb
-import carla_code.bbox_annotation.carla_vehicle_annotator as cva
 import numpy as np
+
+
+
 
 ################################################
 # Actions available to all carla.Actor objects #
@@ -280,6 +284,48 @@ class GetPathVehicle(Action):
 			print("aqui2")
 			control = self.agent._local_planner.run_step()
 			obj.carlaActor.apply_control(control)
+
+
+import socket
+from threading import Thread
+import threading
+class SendImages(Action):
+
+	def __init__(self, frame_index, camera_id, server_connection, current_server_listening_thread, stop_listening_event):
+		self.camera_id = camera_id
+		self.frame_index = frame_index
+		self.server_connection = server_connection
+		self.current_server_listening_thread = current_server_listening_thread
+		self.stop_listening_event = stop_listening_event
+
+    
+    
+	def applyTo(self, obj, sim):
+	
+		if obj.cam_queue: 
+		
+			# Get images
+			rgb_image = obj.cam_queue[-1] #.get()
+			# Make sure the image queues stay under the size
+			obj.cam_queue.clear()
+			array = np.frombuffer(rgb_image.raw_data, dtype=np.dtype("uint8"))
+			arr_bytes = array.tobytes()
+			try:
+				self.server_connection.sendall(self.frame_index.to_bytes(2, 'big'))
+				self.server_connection.sendall(arr_bytes)
+				print("Sent Frame: " + str(self.frame_index))
+				self.frame_index += 1
+				# time.sleep(0.5)
+			except:
+				print("Socket timeout!")
+				#self.server_connection = self.setup_connections_and_handling()
+				#self.stop_listening_event.set() # This will stop the thread
+				#self.current_server_listening_thread.join()
+				# Set up our listener again
+				#self.stop_listening_event.clear()
+				#self.current_server_listening_thread = self.setupListeningServer()
+				
+
 
 		
 class GetBoundingBox(Action):
