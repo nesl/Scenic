@@ -302,7 +302,7 @@ class SendImages(Action):
     
     
 	def applyTo(self, obj, sim):
-	
+		
 		if obj.cam_queue: 
 		
 			# Get images
@@ -322,6 +322,7 @@ class SendImages(Action):
 				# time.sleep(0.5)
 			except:
 				print("Socket timeout!")
+				obj.connected = False
 				#self.server_connection = self.setup_connections_and_handling()
 				#self.stop_listening_event.set() # This will stop the thread
 				#self.current_server_listening_thread.join()

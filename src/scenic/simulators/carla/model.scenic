@@ -161,10 +161,12 @@ class Camera(CarlaActor):
     allowCollisions: True
     cam_queue: None
     camera_id: 0
+    connected: False
     
 class rgbCamera(Camera,CarlaActor):
     blueprint: Uniform(*blueprints.rgbModels)
     depth: None
+    
     
 class depthCamera(Camera,CarlaActor):
     blueprint: Uniform(*blueprints.depthModels)
