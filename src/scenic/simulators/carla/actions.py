@@ -289,6 +289,7 @@ class GetPathVehicle(Action):
 import socket
 from threading import Thread
 import threading
+import cv2
 class SendImages(Action):
 
 	def __init__(self, frame_index, camera_id, server_connection, current_server_listening_thread, stop_listening_event):
@@ -309,9 +310,12 @@ class SendImages(Action):
 			# Make sure the image queues stay under the size
 			obj.cam_queue.clear()
 			array = np.frombuffer(rgb_image.raw_data, dtype=np.dtype("uint8"))
+			
+			#pdb.set_trace()
 			arr_bytes = array.tobytes()
 			try:
 				self.server_connection.sendall(self.frame_index.to_bytes(2, 'big'))
+				print("Sent bytes", len(arr_bytes))
 				self.server_connection.sendall(arr_bytes)
 				print("Sent Frame: " + str(self.frame_index))
 				self.frame_index += 1
