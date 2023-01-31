@@ -299,9 +299,15 @@ class SendImages(Action):
 		self.current_server_listening_thread = current_server_listening_thread
 		self.stop_listening_event = stop_listening_event
 
+	def mysend(self, msg, MSGLEN):
+        	totalsent = 0
+        	while totalsent < MSGLEN:
+        	    sent = self.server_connection.send(msg[totalsent:])
+        	    if sent == 0:
+        	        raise RuntimeError("socket connection broken")
+        	    totalsent = totalsent + sent
     
-    
-	def applyTo(self, obj, sim):
+	def applyTo(self, obj, sim): #We should put into a thread this
 		
 		if obj.cam_queue: 
 		
@@ -314,14 +320,20 @@ class SendImages(Action):
 			#pdb.set_trace()
 			arr_bytes = array.tobytes()
 			try:
-				self.server_connection.sendall(self.frame_index.to_bytes(2, 'big'))
-				print("Sent bytes", len(arr_bytes))
-				self.server_connection.sendall(arr_bytes)
-				print("Sent Frame: " + str(self.frame_index))
+			
+				#print("Sending data",self.frame_index)
+				
+				#len_bytes = self.server_connection.send(self.frame_index.to_bytes(2, 'big'))
+				self.mysend(self.frame_index.to_bytes(2, 'big'),2)
+
+				#print("Sent bytes", self.frame_index)
+				#len_bytes = self.server_connection.send(arr_bytes)
+				self.mysend(arr_bytes,len(arr_bytes))
+				#print("Sent Frame: " + str(self.frame_index), self.frame_index)
 				self.frame_index += 1
 				# time.sleep(0.5)
-			except:
-				print("Socket timeout!")
+			except Exception as e:
+				print("Socket timeout!", e)
 				obj.connected = False
 				#self.server_connection = self.setup_connections_and_handling()
 				#self.stop_listening_event.set() # This will stop the thread
