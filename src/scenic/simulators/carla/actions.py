@@ -19,7 +19,7 @@ import scenic.simulators.carla.utils.utils as _utils
 import scenic.simulators.carla.model as _carlaModel
 import pdb
 import numpy as np
-
+import os
 
 
 
@@ -292,12 +292,13 @@ import threading
 import cv2
 class SendImages(Action):
 
-	def __init__(self, frame_index, camera_id, server_connection, current_server_listening_thread, stop_listening_event):
+	def __init__(self, frame_index, camera_id, server_connection, current_server_listening_thread, stop_listening_event, path):
 		self.camera_id = camera_id
 		self.frame_index = frame_index
 		self.server_connection = server_connection
 		self.current_server_listening_thread = current_server_listening_thread
 		self.stop_listening_event = stop_listening_event
+		self.path = path
 
 	def mysend(self, msg, MSGLEN):
         	totalsent = 0
@@ -317,6 +318,12 @@ class SendImages(Action):
 			obj.cam_queue.clear()
 			array = np.frombuffer(rgb_image.raw_data, dtype=np.dtype("uint8"))
 			
+			if self.path:
+				if not os.path.exists(self.path):
+					os.makedirs(self.path)
+				if not os.path.exists(self.path+'/'+str(self.camera_id)):
+					os.makedirs(self.path+'/'+str(self.camera_id))
+				rgb_image.save_to_disk("%s/%s/%05d.jpg" % (self.path,self.camera_id,rgb_image.frame))
 			#pdb.set_trace()
 			arr_bytes = array.tobytes()
 			try:
