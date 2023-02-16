@@ -250,6 +250,7 @@ class CarlaSimulation(DrivingSimulation):
 		elif isinstance(carlaActor, carla.Sensor):
 			tick_sensor = 0.05
 			#pdb.set_trace()
+
 			carlaActor.sensor_tick = tick_sensor
 			# Keep track of a camera queue for both
 			cam_queue = [] # queue.Queue()

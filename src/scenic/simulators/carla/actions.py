@@ -307,6 +307,40 @@ class SendImages(Action):
         	    if sent == 0:
         	        raise RuntimeError("socket connection broken")
         	    totalsent = totalsent + sent
+        	    
+	def get_camera_intrinsic(self):
+		VIEW_WIDTH = 800
+		VIEW_HEIGHT = 600
+		VIEW_FOV = 90
+		calibration = np.identity(3)
+		calibration[0, 2] = VIEW_WIDTH / 2.0
+		calibration[1, 2] = VIEW_HEIGHT / 2.0
+		calibration[0, 0] = calibration[1, 1] = VIEW_WIDTH / (2.0 * np.tan(VIEW_FOV * np.pi / 360.0))
+		return calibration
+		
+	def get_matrix(self, transform):
+		rotation = transform.rotation
+		location = transform.location
+		c_y = np.cos(np.radians(rotation.yaw))
+		s_y = np.sin(np.radians(rotation.yaw))
+		c_r = np.cos(np.radians(rotation.roll))
+		s_r = np.sin(np.radians(rotation.roll))
+		c_p = np.cos(np.radians(rotation.pitch))
+		s_p = np.sin(np.radians(rotation.pitch))
+		matrix = np.matrix(np.identity(4))
+		matrix[0, 3] = location.x
+		matrix[1, 3] = location.y
+		matrix[2, 3] = location.z
+		matrix[0, 0] = c_p * c_y
+		matrix[0, 1] = c_y * s_p * s_r - s_y * c_r
+		matrix[0, 2] = -c_y * s_p * c_r - s_y * s_r
+		matrix[1, 0] = s_y * c_p
+		matrix[1, 1] = s_y * s_p * s_r + c_y * c_r
+		matrix[1, 2] = -s_y * s_p * c_r + c_y * s_r
+		matrix[2, 0] = s_p
+		matrix[2, 1] = -c_p * s_r
+		matrix[2, 2] = c_p * c_r
+		return matrix    
     
 	def applyTo(self, obj, sim): #We should put into a thread this
 		
@@ -318,6 +352,7 @@ class SendImages(Action):
 			obj.cam_queue.clear()
 			array = np.frombuffer(rgb_image.raw_data, dtype=np.dtype("uint8"))
 			
+			
 			if self.path:
 				if not os.path.exists(self.path):
 					os.makedirs(self.path)
@@ -325,6 +360,25 @@ class SendImages(Action):
 					os.makedirs(self.path+'/'+str(self.camera_id))
 				rgb_image.save_to_disk("%s/%s/%05d.jpg" % (self.path,self.camera_id,rgb_image.frame))
 			#pdb.set_trace()
+			
+			'''
+			K = self.get_camera_intrinsic()
+			Rt = self.get_matrix(rgb_image.transform)[:3]
+			F = np.array([[ 0,  1,  0 ], [ 0,  0, -1 ], [ 1,  0,  0 ]], dtype=np.float32)
+			
+			
+
+			vector_3d = np.array([0.786292,5.856472,0.959821,1])
+			FRt = np.matmul(F,Rt)
+			P = np.matmul(K,FRt)
+			
+			res = np.array(np.matmul(P,vector_3d))
+			print(res/res[0][2])
+			
+			K_inv = np.linalg.inv(K)
+			'''
+			
+			
 			arr_bytes = array.tobytes()
 			try:
 			
