@@ -138,7 +138,7 @@ class SetVehicleLightStateAction(VehicleAction):
 
 class PedestrianAction(Action):
 	def canBeTakenBy(self, agent):
-		return isinstance(agent, _carlaModel.Pedestrian)
+		return True #isinstance(agent, _carlaModel.Pedestrian)
 
 class SetJumpAction(PedestrianAction):
 	def __init__(self, jump):
@@ -161,7 +161,9 @@ class SetWalkAction(PedestrianAction):
 
 	def applyTo(self, obj, sim):
 		controller = obj.carlaController
+
 		if self.enabled:
+			
 			controller.start()
 			controller.go_to_location(sim.world.get_random_location_from_navigation())
 			controller.set_max_speed(self.maxSpeed)
@@ -413,7 +415,9 @@ class GetBoundingBox(Action):
 		self.path = path
 		#print(len(actors))
 	def applyTo(self, obj, sim):
-		if obj.depth.cam_queue and obj.cam_queue:  # We only save information if we have captured data
+	
+		#Only for depth camera
+		if obj.depth and obj.depth.cam_queue and obj.cam_queue:  # We only save information if we have captured data
 
 			#desc = camqueue[2]
 			# print(desc)
@@ -492,4 +496,83 @@ class GetBoundingBox(Action):
 			cva.save_output(rgb_image, filtered['bbox'], filtered['class'], \
 			removed['bbox'], removed['class'], path=self.path+"tc"+str(obj.camera_id), \
 			save_patched=True, add_data=metadata, out_format='json')
+			
+		#If there is lidar instead
+		elif obj.lidar and obj.lidar.cam_queue and obj.cam_queue:  # We only save information if we have captured data
+
+			#desc = camqueue[2]
+			# print(desc)
+
+			# Get images
+			lidar_image = obj.lidar.cam_queue[-1]
+			rgb_image = obj.cam_queue[-1] #.get()
+			# Make sure the image queues stay under the size
+			obj.lidar.cam_queue.clear()
+			obj.cam_queue.clear()
+
+			
+			actors_bb = [x.carlaActor if isinstance(x.carlaActor,_carla.Walker) or isinstance(x.carlaActor,_carla.Vehicle) else x for x in self.actors if x.carlaActor is not None]
+			#pdb.set_trace()
+			filtered, _ = cva.auto_annotate_lidar(actors_bb,obj.carlaActor, lidar_image,  max_dist=50, min_detect=1)
+			#pdb.set_trace()
+			# Get the corresponding metadata for these vehicles
+			metadata = []
+
+			#print(filtered["vehicles"], object_actors)
+			for filtered_vehicle in filtered["vehicles"]:
+
+
+				vehicle_traffic_state = "N/A"
+
+				if (isinstance(filtered_vehicle,_carla.libcarla.Walker)):
+					#pdb.set_trace()
+					metadata_entry = ["pedestrian",filtered_vehicle.attributes,filtered_vehicle.type_id,filtered_vehicle.id]
+				elif (isinstance(filtered_vehicle,_carla.libcarla.Vehicle)):
+					metadata_entry = ["vehicle",filtered_vehicle.attributes,filtered_vehicle.type_id, filtered_vehicle.id]
+				else:
+					metadata_entry = ["object",filtered_vehicle.carlaActor.attributes,filtered_vehicle.carlaActor.type_id,filtered_vehicle.carlaActor.id]
+
+	
+
+
+				'''
+				# Get current vehicle attributes
+				vehicle_loc = filtered_vehicle.get_transform().location
+				vehicle_rot = filtered_vehicle.get_transform().rotation
+				vehicle_acc = filtered_vehicle.get_acceleration()
+				vehicle_vel = filtered_vehicle.get_velocity()
+				vehicle_ang_vel = filtered_vehicle.get_angular_velocity()
+
+
+
+				current_vehicle_attributes = {}
+				current_vehicle_attributes["location"] = [vehicle_loc.x, \
+				    vehicle_loc.y, vehicle_loc.z]
+				current_vehicle_attributes["rotation"] = [vehicle_rot.pitch, \
+				    vehicle_rot.yaw, vehicle_rot.roll]
+				current_vehicle_attributes["acceleration"] = [vehicle_acc.x, \
+				    vehicle_acc.y, vehicle_acc.z]
+				current_vehicle_attributes["velocity"] = [vehicle_vel.x, \
+				    vehicle_vel.y, vehicle_vel.z]
+				current_vehicle_attributes["angular_velocity"] = [vehicle_ang_vel.x, \
+				    vehicle_ang_vel.y, vehicle_ang_vel.z]
+				current_vehicle_attributes["traffic_state"] = vehicle_traffic_state
+
+
+				metadata_entry.append(current_vehicle_attributes)
+				'''
+
+				metadata.append(metadata_entry)
+
+			# We only save the image under two conditions:
+			#   - There is actually a vehicle in the image
+			#   - For a single time per simulation, we save the first image that has no vehicles
+			# if metadata: or not stored_empty_image:
+
+
+
+			cva.save_output(rgb_image, filtered['bbox'], \
+			path=self.path+"tc"+str(obj.camera_id), \
+			save_patched=True, add_data=metadata, out_format='json')
+
 

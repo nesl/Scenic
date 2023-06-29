@@ -198,6 +198,15 @@ class CarlaSimulation(DrivingSimulation):
 			
 		if blueprint.id == 'sensor.camera.rgb':
 			blueprint.set_attribute("motion_blur_intensity", "0")
+			
+		elif blueprint.id == 'sensor.lidar.ray_cast_semantic':
+			blueprint.set_attribute('sensor_tick', '1.0')
+			blueprint.set_attribute('channels', '64')
+			blueprint.set_attribute('points_per_second', '1120000')
+			blueprint.set_attribute('upper_fov', '40')
+			blueprint.set_attribute('lower_fov', '-40')
+			blueprint.set_attribute('range', '100')
+			blueprint.set_attribute('rotation_frequency', '20')
 
 		# Set up transform
 		loc = utils.scenicToCarlaLocation(obj.position, world=self.world, blueprint=obj.blueprint)
@@ -268,8 +277,11 @@ class CarlaSimulation(DrivingSimulation):
 		super().executeActions(allActions)
 
 		# Apply control updates which were accumulated while executing the actions
+
 		for obj in self.agents:
+			
 			ctrl = obj._control
+
 			if ctrl is not None:
 				obj.carlaActor.apply_control(ctrl)
 				obj._control = None

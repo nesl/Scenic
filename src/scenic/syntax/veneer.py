@@ -176,8 +176,8 @@ def registerObject(obj):
 	"""
 	if evaluatingRequirement:
 		raise RuntimeParseError('tried to create an object inside a requirement')
-	elif currentBehavior is not None:
-		raise RuntimeParseError('tried to create an object inside a behavior')
+	#elif currentBehavior is not None:
+	#	raise RuntimeParseError('tried to create an object inside a behavior')
 	elif activity > 0 or currentScenario:
 		assert not evaluatingRequirement
 		assert isinstance(obj, Constructible)

@@ -241,3 +241,7 @@ rgbModels = [
 depthModels = [
       'sensor.camera.depth'
 ]
+
+lidarModels = [
+      'sensor.lidar.ray_cast_semantic' 
+]

@@ -187,7 +187,7 @@ class WalkingAction(Action):
 	Such agents must implement the `Walks` protocol.
 	"""
 	def canBeTakenBy(self, agent):
-		return isinstance(agent, _model.Walks)
+		return True #isinstance(agent, _model.Walks)
 
 class SetWalkingDirectionAction(WalkingAction):
 	"""Set the walking direction."""

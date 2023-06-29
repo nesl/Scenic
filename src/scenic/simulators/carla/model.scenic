@@ -166,10 +166,14 @@ class Camera(CarlaActor):
 class rgbCamera(Camera,CarlaActor):
     blueprint: Uniform(*blueprints.rgbModels)
     depth: None
+    lidar: None
     
     
 class depthCamera(Camera,CarlaActor):
     blueprint: Uniform(*blueprints.depthModels)
+    
+class Lidar(Camera, CarlaActor):
+	blueprint: Uniform(*blueprints.lidarModels)
 
 class Vehicle(Vehicle, CarlaActor, Steers):
     """Abstract class for steerable vehicles."""

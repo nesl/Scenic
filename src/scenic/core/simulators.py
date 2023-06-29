@@ -271,6 +271,7 @@ class Simulation:
         self.objects.append(obj)
         if obj.behavior:
             self.agents.append(obj)
+            #print("Creating object", obj)
 
     def createObjectInSimulator(self, obj):
         """Create the given object in the simulator.
